@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1b2d">
+<title>Qibla Noor – قبلہ نور</title>
+<style>
+:root{--bg:#0f1b2d;--card:#18283f;--ink:#f3ead8;--mute:#9fb0c8;--acc:#3fd0c0;--gold:#e0b861}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Nastaliq Urdu","Noto Naskh Arabic",system-ui,sans-serif;line-height:1.9;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{max-width:520px;margin:auto;padding:14px}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{font-size:1.4rem;margin:0;color:var(--gold)}
+button{font:inherit;color:var(--ink);background:var(--card);border:1px solid #2c4160;border-radius:10px;padding:4px 14px}
+button:focus-visible{outline:2px solid var(--acc)}
+nav{display:flex;gap:8px;margin:12px 0}
+nav button{flex:1}
+nav button.on{background:var(--acc);color:#06201c;border-color:var(--acc)}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+.mute{color:var(--mute);font-size:.9rem}
+.compass{position:relative;width:min(80vw,320px);aspect-ratio:1;margin:10px auto;border-radius:50%;border:2px solid #2c4160;background:radial-gradient(circle,#1d3250,#0f1b2d)}
+.dial{position:absolute;inset:0;transition:transform .15s linear}
+.dial span{position:absolute;left:50%;top:6px;transform:translateX(-50%);color:var(--mute);font-family:system-ui}
+.needle{position:absolute;inset:0;transition:transform .15s linear}
+.needle:before{content:"";position:absolute;left:50%;top:8%;width:0;height:0;margin-left:-12px;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:40% solid var(--gold);border-bottom-width:42%}
+.needle:after{content:"🕋";position:absolute;left:50%;top:1%;transform:translateX(-50%);font-size:1.4rem}
+.big{text-align:center;font-size:1.6rem;color:var(--acc);font-family:system-ui}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #243752}
+.row:last-child{border:0}.row.next{color:var(--gold)}
+.row b{font-family:system-ui;font-weight:600}
+.count{width:190px;height:190px;border-radius:50%;margin:16px auto;display:block;font-size:3rem;font-family:system-ui;background:var(--card);border:3px solid var(--acc)}
+.count:active{background:#1d3250}
+.zikr{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<header><h1 id="title"></h1><button id="lang">English</button></header>
+<nav>
+<button data-t="q" class="on"></button>
+<button data-t="p"></button>
+<button data-t="s"></button>
+</nav>
+
+<section id="q" class="on">
+<div class="card"><div class="big" id="deg">--</div><div class="mute" id="qmsg" style="text-align:center"></div></div>
+<div class="compass"><div class="dial" id="dial"><span>N</span></div><div class="needle" id="needle"></div></div>
+<div style="text-align:center"><button id="start"></button></div>
+<p class="mute" id="qhelp" style="text-align:center"></p>
+</section>
+
+<section id="p">
+<div class="card"><div class="mute" id="nextlbl"></div><div class="big" id="nextt">--</div></div>
+<div class="card" id="times"></div>
+<div class="card"><label><input type="checkbox" id="hanafi" checked> <span id="hanl"></span></label></div>
+</section>
+
+<section id="s">
+<button class="count" id="cnt">0</button>
+<div class="zikr" id="zikr"></div>
+<div style="text-align:center;margin-top:12px"><button id="reset"></button></div>
+</section>
+</main>
+
+<script>
+const T={
+ ur:{title:"قبلہ نور",q:"قبلہ",p:"اوقاتِ نماز",s:"تسبیح",dir:"rtl",lg:"English",
+  start:"کمپاس چلائیں",help:"فون کو سیدھا (زمین کے متوازی) رکھیں۔ سونے کا تیر قبلے کی طرف ہے۔",
+  from:"شمال سے",nextl:"اگلی نماز",han:"عصر حنفی (سایہ دوگنا)",reset:"صفر کریں",
+  loc:"آپ کا مقام استعمال ہو رہا ہے",noloc:"مقام نہیں ملا، لاہور کا مقام استعمال ہو رہا ہے",
+  nocomp:"اس فون میں کمپاس سینسر نہیں ملا۔ اوپر دی گئی ڈگری کے مطابق شمال سے رخ کریں۔",
+  names:["فجر","طلوع آفتاب","ظہر","عصر","مغرب","عشاء"],
+  z:["سبحان اللہ","الحمد للہ","اللہ اکبر","درود شریف"]},
+ en:{title:"Qibla Noor",q:"Qibla",p:"Prayer times",s:"Tasbeeh",dir:"ltr",lg:"اردو",
+  start:"Start compass",help:"Hold the phone flat. The gold arrow points to the Qibla.",
+  from:"from North",nextl:"Next prayer",han:"Hanafi Asr (double shadow)",reset:"Reset",
+  loc:"Using your location",noloc:"Location unavailable, using Lahore",
+  nocomp:"No compass sensor found. Face the bearing shown above, measured from North.",
+  names:["Fajr","Sunrise","Dhuhr","Asr","Maghrib","Isha"],
+  z:["SubhanAllah","Alhamdulillah","Allahu Akbar","Durood"]}
+};
+let L=localStorage.getItem("lang")||"ur",lat=31.5204,lng=74.3587,located=false,qibla=0,tab="q",zi=0,count=0;
+const $=id=>document.getElementById(id),r=Math.PI/180,sin=x=>Math.sin(x*r),cos=x=>Math.cos(x*r);
+function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function get(k,d){try{return localStorage.getItem(k)??d}catch(e){return d}}
+
+function bearing(){const a=21.4225,b=39.8262,d=(b-lng)*r;
+ const y=Math.sin(d)*Math.cos(a*r),x=Math.cos(lat*r)*Math.sin(a*r)-Math.sin(lat*r)*Math.cos(a*r)*Math.cos(d);
+ return (Math.atan2(y,x)/r+360)%360}
+
+function times(date){
+ const tz=-date.getTimezoneOffset()/60,
+  D=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate(),12)/864e5-10957.5,
+  g=357.529+0.98560028*D,q=280.459+0.98564736*D,
+  Ls=q+1.915*sin(g)+0.02*sin(2*g),e=23.439-3.6e-7*D,
+  RA=Math.atan2(cos(e)*sin(Ls),cos(Ls))/r/15,
+  dec=Math.asin(sin(e)*sin(Ls))/r,
+  eq=q/15-((RA%24)+24)%24,
+  eqt=((eq+12)%24+24)%24-12,
+  noon=12+tz-lng/15-eqt,
+  h=a=>{const c=(-sin(a)-sin(dec)*sin(lat))/(cos(dec)*cos(lat));return Math.acos(Math.max(-1,Math.min(1,c)))/r/15},
+  f=$("hanafi").checked?2:1,
+  A=Math.atan(1/(f+Math.tan(Math.abs(lat-dec)*r)))/r,
+  asr=noon+Math.acos((sin(A)-sin(lat)*sin(dec))/(cos(lat)*cos(dec)))/r/15;
+ return [noon-h(18),noon-h(0.833),noon,asr,noon+h(0.833),noon+h(18)]
+}
+const fmt=t=>{t=((t%24)+24)%24;let H=Math.floor(t),M=Math.round((t-H)*60);if(M==60){M=0;H=(H+1)%24}
+ return ((H%12)||12)+":"+String(M).padStart(2,"0")+" "+(H<12?"AM":"PM")};
+
+function renderTimes(){
+ const t=times(new Date()),n=new Date(),now=n.getHours()+n.getMinutes()/60+n.getSeconds()/3600,tr=T[L];
+ let nx=t.findIndex((v,i)=>i!=1&&v>now),tom=false;if(nx<0){nx=0;tom=true}
+ $("times").innerHTML=t.map((v,i)=>`<div class="row${i==nx?" next":""}"><span>${tr.names[i]}</span><b>${fmt(v)}</b></div>`).join("");
+ let d=t[nx]-now+(tom?24:0),H=Math.floor(d),M=Math.floor((d-H)*60);
+ $("nextt").textContent=tr.names[nx]+" — "+H+"h "+M+"m";
+}
+
+function applyLang(){
+ const tr=T[L];document.documentElement.lang=L;document.documentElement.dir=tr.dir;
+ $("title").textContent=tr.title;$("lang").textContent=tr.lg;
+ document.querySelectorAll("nav button").forEach(b=>b.textContent=tr[b.dataset.t]);
+ $("start").textContent=tr.start;$("qhelp").textContent=tr.help;$("nextlbl").textContent=tr.nextl;
+ $("hanl").textContent=tr.han;$("reset").textContent=tr.reset;
+ $("qmsg").textContent=located?tr.loc:tr.noloc;
+ $("deg").textContent=Math.round(qibla)+"° "+tr.from;
+ $("zikr").innerHTML=tr.z.map((z,i)=>`<button data-z="${i}" class="${i==zi?"on":""}" style="${i==zi?"background:var(--acc);color:#06201c":""}">${z}</button>`).join("");
+ renderTimes();
+}
+function setPos(la,ln,ok){lat=la;lng=ln;located=ok;qibla=bearing();applyLang()}
+
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x==b));
+ document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==b.dataset.t))});
+$("lang").onclick=()=>{L=L=="ur"?"en":"ur";store("lang",L);applyLang()};
+$("hanafi").onchange=renderTimes;
+
+let heading=null;
+function onOri(e){
+ let h=e.webkitCompassHeading!=null?e.webkitCompassHeading:(e.absolute||e.type=="deviceorientationabsolute")&&e.alpha!=null?360-e.alpha:null;
+ if(h==null)return;heading=h;
+ $("dial").style.transform=`rotate(${-h}deg)`;
+ $("needle").style.transform=`rotate(${qibla-h}deg)`;
+}
+$("start").onclick=async()=>{
+ try{
+  if(typeof DeviceOrientationEvent!=="undefined"&&DeviceOrientationEvent.requestPermission){
+   if(await DeviceOrientationEvent.requestPermission()!=="granted")throw 0}
+  window.addEventListener("deviceorientationabsolute",onOri,true);
+  window.addEventListener("deviceorientation",onOri,true);
+  setTimeout(()=>{if(heading==null){$("qhelp").textContent=T[L].nocomp;$("needle").style.transform=`rotate(${qibla}deg)`}},2500);
+ }catch(e){$("qhelp").textContent=T[L].nocomp;$("needle").style.transform=`rotate(${qibla}deg)`}
+};
+
+count=+get("count",0);zi=+get("zi",0);$("cnt").textContent=count;
+$("cnt").onclick=()=>{count++;$("cnt").textContent=count;store("count",count);if(navigator.vibrate)navigator.vibrate(15)};
+$("reset").onclick=()=>{count=0;$("cnt").textContent=0;store("count
